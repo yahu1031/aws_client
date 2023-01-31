@@ -16,13 +16,13 @@ class Lambda {
   final http.Client _httpClient;
   final String _region;
 
-  Lambda({Credentials credentials, http.Client httpClient, String region})
+  Lambda(
+      {required Credentials credentials,
+      required http.Client httpClient,
+      required String region})
       : _credentials = credentials,
         _httpClient = httpClient,
-        _region = region {
-    assert(_credentials != null);
-    assert(_httpClient != null);
-  }
+        _region = region;
 
   /// execute real request
   Future<AwsResponse> _sendRequest(String functionName, String body,
@@ -30,7 +30,8 @@ class Lambda {
     final response = await AwsRequestBuilder(
             method: 'POST',
             headers: <String, String>{
-              'X-Amz-Invocation-Type': invocationType.toString().split('.')[1],
+              'X-Amz-Invocation-Type': invocationType.name[0].toUpperCase() +
+                  invocationType.name.substring(1),
             }..addAll(headers),
             baseUrl:
                 'https://lambda.$_region.amazonaws.com/2015-03-31/functions/$functionName/invocations',
@@ -55,11 +56,11 @@ class Lambda {
     String functionName,
     String payload, {
     Map<String, String> headers = const {},
-    LambdaInvocationType invocationType = LambdaInvocationType.RequestResponse,
+    LambdaInvocationType invocationType = LambdaInvocationType.requestResponse,
   }) async {
     return _sendRequest(functionName, payload, headers, invocationType);
   }
 }
 
 /// https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html#API_Invoke_RequestSyntax
-enum LambdaInvocationType { Event, RequestResponse, DryRun }
+enum LambdaInvocationType { event, requestResponse, dryRun }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:http_client/http_client.dart' as http;
-import 'package:meta/meta.dart';
 import 'package:xml/xml.dart';
 
 import 'src/credentials.dart';
@@ -13,14 +12,10 @@ typedef RequestExecutor = Future<String> Function(
 /// AWS SQS (Simple Queue Service).
 class Sns {
   /// AWS SQS
-  Sns({Credentials credentials, http.Client httpClient, String region})
+  Sns({required Credentials credentials, required http.Client httpClient, required String region})
       : _credentials = credentials,
         _httpClient = httpClient,
-        _region = region {
-    assert(_credentials != null);
-    assert(_httpClient != null);
-    assert(_region != null);
-  }
+        _region = region;
 
   final Credentials _credentials;
   final http.Client _httpClient;
@@ -47,8 +42,8 @@ class Sns {
   /// create an Endpoint with push token
   /// implements of https://docs.aws.amazon.com/sns/latest/api/API_CreatePlatformEndpoint.html
   Future<SnsEndpoint> createEndpoint(
-      {@required String applicationArn,
-      @required String pushToken,
+      {required String applicationArn,
+      required String pushToken,
       String userData = ''}) async {
     assert(applicationArn != '');
     assert(pushToken != '');
@@ -59,7 +54,7 @@ class Sns {
       'CustomUserData': userData,
       'Version': '2010-03-31'
     };
-    final xml = parse(await _sendRequest(parameters));
+    final xml = XmlDocument.parse(await _sendRequest(parameters));
     final endpointArn = xml.findAllElements('EndpointArn').first.text;
     return endpoint(endpointArn);
   }
@@ -74,7 +69,7 @@ class Sns {
       'Name': name,
       'Version': '2010-03-31'
     };
-    final xml = parse(await _sendRequest(parameters));
+    final xml = XmlDocument.parse(await _sendRequest(parameters));
     final topicArn = xml.findAllElements('TopicArn').first.text;
     return topic(topicArn);
   }
@@ -89,10 +84,7 @@ class SnsEndpoint {
   /// A new endpoint of device
   SnsEndpoint(RequestExecutor sendRequest, String arn)
       : _sendRequest = sendRequest,
-        _arn = arn {
-    assert(sendRequest != null);
-    assert(arn != null);
-  }
+        _arn = arn;
 
   final RequestExecutor _sendRequest;
   final String _arn;
@@ -110,7 +102,7 @@ class SnsEndpoint {
       'Message': body,
       'Version': '2010-03-31'
     };
-    final xml = parse(await _sendRequest(parameters));
+    final xml = XmlDocument.parse(await _sendRequest(parameters));
     final messageId = xml.findAllElements('MessageId').first.text;
     return messageId;
   }
@@ -121,10 +113,7 @@ class SnsTopic {
   /// The SNS Topic
   SnsTopic(RequestExecutor sendRequest, String arn)
       : _sendRequest = sendRequest,
-        _arn = arn {
-    assert(sendRequest != null);
-    assert(arn != null);
-  }
+        _arn = arn;
 
   final RequestExecutor _sendRequest;
   final String _arn;
@@ -139,7 +128,7 @@ class SnsTopic {
       'Message': body,
       'Version': '2010-03-31'
     };
-    final xml = parse(await _sendRequest(parameters));
+    final xml = XmlDocument.parse(await _sendRequest(parameters));
     final messageId = xml.findAllElements('MessageId').first.text;
     return messageId;
   }
@@ -155,7 +144,7 @@ class SnsTopic {
       'Protocol': 'application',
       'Version': '2010-03-31'
     };
-    final xml = parse(await _sendRequest(parameters));
+    final xml = XmlDocument.parse(await _sendRequest(parameters));
     final subscriptionArn = xml.findAllElements('SubscriptionArn').first.text;
     return SnsSubscription(_sendRequest, subscriptionArn);
   }
@@ -166,11 +155,7 @@ class SnsSubscription {
   /// init subscription
   SnsSubscription(RequestExecutor sendRequest, String arn)
       : _sendRequest = sendRequest,
-        _arn = arn {
-    assert(sendRequest != null);
-    assert(arn != null);
-  }
-
+        _arn = arn;
   final RequestExecutor _sendRequest;
   final String _arn;
 

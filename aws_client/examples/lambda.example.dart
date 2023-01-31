@@ -14,16 +14,17 @@ Future main(List<String> args) async {
   final environment = Platform.environment;
   final Client httpClient = ConsoleClient();
   final credentials = Credentials(
-    accessKey: environment['AWS_ACCESS_KEY_ID'],
-    secretKey: environment['AWS_SECRET_ACCESS_KEY'],
+    accessKey: environment['AWS_ACCESS_KEY_ID']!,
+    secretKey: environment['AWS_SECRET_ACCESS_KEY']!,
     sessionToken: environment['AWS_SESSION_TOKEN'],
   );
   try {
     final aws = Aws(credentials: credentials, httpClient: httpClient);
-    final response = await aws.lambda(environment['AWS_DEFAULT_REGION']).invoke(
+    final response =
+        await aws.lambda(environment['AWS_DEFAULT_REGION']!).invoke(
       'my-function',
       json.encode({'number': 4}),
-      invocationType: LambdaInvocationType.RequestResponse,
+      invocationType: LambdaInvocationType.requestResponse,
       headers: {'X-Amz-Log-Type': 'Tail'},
     );
 

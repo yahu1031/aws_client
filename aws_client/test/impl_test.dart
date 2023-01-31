@@ -19,10 +19,10 @@ void main() {
     test('create-queue', () async {
       final httpClient = ConsoleClient();
       final credentials =
-          Credentials(accessKey: accessKey, secretKey: accessSecret);
+          Credentials(accessKey: accessKey!, secretKey: accessSecret!);
       final aws = Aws(credentials: credentials, httpClient: httpClient);
       final queue = await aws.sqs
-          .create(region: region, queueName: '[set your queue name]');
+          .create(region: region!, queueName: '[set your queue name]');
       await queue.sendMessage('test message');
       expect(true, equals(true));
     });
@@ -30,7 +30,7 @@ void main() {
     test('Queue-send', () async {
       final httpClient = ConsoleClient();
       final credentials =
-          Credentials(accessKey: accessKey, secretKey: accessSecret);
+          Credentials(accessKey: accessKey!, secretKey: accessSecret!);
       final aws = Aws(credentials: credentials, httpClient: httpClient);
       final queue = aws.sqs.queue('[set your own]');
       await queue.sendMessage('test test test');
@@ -40,11 +40,11 @@ void main() {
     test('SNS-createEndpoint', () async {
       final httpClient = ConsoleClient();
       final credentials =
-          Credentials(accessKey: accessKey, secretKey: accessSecret);
+          Credentials(accessKey: accessKey!, secretKey: accessSecret!);
       final aws = Aws(credentials: credentials, httpClient: httpClient);
-      final sns = aws.sns(region);
+      final sns = aws.sns(region!);
       final endpoint = await sns.createEndpoint(
-          applicationArn: appArn, pushToken: 'your device push token');
+          applicationArn: appArn!, pushToken: 'your device push token');
       print('endpoint: ${endpoint.arn}');
       expect(true, equals(true));
     });

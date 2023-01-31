@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http_client/http_client.dart';
@@ -21,13 +22,13 @@ class AwsResponse {
 
   /// HTTP headers.
   final Map<String, String> headers;
-  final Stream<List<int>> _body;
+  final Stream<List<int>?>? _body;
 
   bool _bodyWasUsed = false;
 
   /// AWS response object.
   AwsResponse(
-      this.statusCode, this.statusText, this.headers, Stream<List<int>> body)
+      this.statusCode, this.statusText, this.headers, Stream<List<int>?>? body)
       : _body = body;
 
   /// A very lousy way to validate some of the common status codes.
@@ -45,7 +46,7 @@ class AwsResponse {
     assert(_bodyWasUsed == false);
     _bodyWasUsed = true;
     final builder = BytesBuilder(copy: false);
-    await _body.forEach(builder.add);
+    await _body?.forEach((bytes) => builder.add(bytes!));
     return builder.toBytes();
   }
 
@@ -78,28 +79,28 @@ class AwsRequestBuilder {
   String method;
 
   /// Full URL. If set, [baseUrl] and [queryParameters] mustn't be set.
-  Uri uri;
+  Uri? uri;
 
   /// Base URL for easier [uri] construction.
-  String baseUrl;
+  String? baseUrl;
 
   /// Query parameters for easier [uri] construction.
-  Map<String, String> queryParameters;
+  Map<String, String>? queryParameters;
 
   /// HTTP Headers
-  Map<String, String> headers;
+  Map<String, String>? headers;
 
   /// request content
-  List<int> body;
+  List<int>? body;
 
   /// Sets the body with the given parameters in a form-url-encoded format.
-  Map<String, String> formParameters;
+  Map<String, String>? formParameters;
 
   /// AWS region
-  String region;
+  String? region;
 
   /// AWS service
-  String service;
+  String? service;
 
   /// AWS credentials
   Credentials credentials;
@@ -116,16 +117,14 @@ class AwsRequestBuilder {
     this.formParameters,
     this.region,
     this.service,
-    this.credentials,
-    this.httpClient,
+    required this.credentials,
+    required this.httpClient,
     this.baseUrl,
     this.queryParameters,
   });
 
   /// Initializes and signs a request.
   Request buildRequest() {
-    assert(credentials != null);
-    assert(httpClient != null);
     _initDefaults();
     _sign();
     return Request(method, uri, headers: headers, body: body);
@@ -144,24 +143,21 @@ class AwsRequestBuilder {
       assert(baseUrl == null);
       assert(queryParameters == null);
     } else {
-      assert(baseUrl != null);
       var url = baseUrl;
-      if (queryParameters != null) {
-        url = '$url${Uri(queryParameters: queryParameters)}';
-      }
+      url = '$url${Uri(queryParameters: queryParameters)}';
       uri = Uri.parse(url);
     }
     headers ??= {};
-    headers.putIfAbsent('Host', () => uri.host);
-    if (body == null && formParameters != null && formParameters.isNotEmpty) {
-      body = utf8.encode(formParameters.keys
+    headers?.putIfAbsent('Host', () => uri!.host);
+    if (body == null && formParameters!.isNotEmpty) {
+      body = utf8.encode(formParameters!.keys
           .map((key) => '${Uri.encodeQueryComponent(key)}='
-              '${Uri.encodeQueryComponent(formParameters[key])}')
+              '${Uri.encodeQueryComponent(formParameters![key]!)}')
           .join('&'));
-      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      headers!['Content-Type'] = 'application/x-www-form-urlencoded';
     }
     body ??= const [];
-    headers.putIfAbsent('X-Amz-Date', () {
+    headers?.putIfAbsent('X-Amz-Date', () {
       final date = DateTime.now()
           .toUtc()
           .toIso8601String()
@@ -171,29 +167,29 @@ class AwsRequestBuilder {
           .first;
       return '${date}Z';
     });
-    region ??= _extractRegion(uri);
-    service ??= _extractService(uri);
+    region ??= _extractRegion(uri!);
+    service ??= _extractService(uri!);
   }
 
   void _sign() {
-    final queryKeys = uri.queryParameters.keys.toList()..sort();
+    final queryKeys = uri!.queryParameters.keys.toList()..sort();
     final canonicalQuery = queryKeys
         .map((s) =>
-            '${_queryComponent(s)}=${_queryComponent(uri.queryParameters[s])}')
+            '${_queryComponent(s)}=${_queryComponent(uri!.queryParameters[s]!)}')
         .join('&');
-    final canonicalHeaders = headers.keys
-        .map((key) => '${key.toLowerCase()}:${headers[key].trim()}')
+    final canonicalHeaders = headers!.keys
+        .map((key) => '${key.toLowerCase()}:${headers![key]!.trim()}')
         .toList()
       ..sort();
     final signedHeaders =
-        (headers.keys.toList()..sort()).map((s) => s.toLowerCase()).join(';');
+        (headers!.keys.toList()..sort()).map((s) => s.toLowerCase()).join(';');
 
     final payloadHash =
-        headers['X-Amz-Content-Sha256'] ?? sha256.convert(body).toString();
+        headers!['X-Amz-Content-Sha256'] ?? sha256.convert(body!).toString();
 
     final canonical = [
       method.toUpperCase(),
-      Uri.encodeFull(uri.path),
+      Uri.encodeFull(uri!.path),
       canonicalQuery,
       ...canonicalHeaders,
       '',
@@ -201,9 +197,9 @@ class AwsRequestBuilder {
       payloadHash,
     ].join('\n');
 
-    final date = headers['X-Amz-Date'];
+    final date = headers!['X-Amz-Date'];
     final credentialList = [
-      date.substring(0, 8),
+      date!.substring(0, 8),
       region,
       service,
       'aws4_request',
@@ -215,21 +211,21 @@ class AwsRequestBuilder {
       credentialList.join('/'),
       canonicalHash,
     ].join('\n');
-    final signingKey = credentialList.fold(
-        utf8.encode('AWS4${credentials.secretKey}'), (List<int> key, String s) {
+    final signingKey = credentialList
+        .fold(utf8.encode('AWS4${credentials.secretKey}'),
+            (List<int> key, String? s) {
+      if (s == null) return key;
       final hmac = Hmac(sha256, key);
       return hmac.convert(utf8.encode(s)).bytes;
     });
     final signature =
         Hmac(sha256, signingKey).convert(utf8.encode(toSign)).toString();
-    if (credentials.sessionToken != null) {
-      headers['X-Amz-Security-Token'] = credentials.sessionToken;
-    }
+    headers!['X-Amz-Security-Token'] = credentials.sessionToken!;
 
     final auth = '$_aws4HmacSha256 '
         'Credential=${credentials.accessKey}/${credentialList.join('/')}, '
         'SignedHeaders=$signedHeaders, '
         'Signature=$signature';
-    headers['Authorization'] = auth;
+    headers!['Authorization'] = auth;
   }
 }

@@ -15,19 +15,14 @@ class Aws {
   final Credentials _credentials;
   final http.Client _httpClient;
 
-  Sqs _sqs;
 
   ///
-  Aws({Credentials credentials, http.Client httpClient})
+  Aws({required Credentials credentials, required http.Client httpClient})
       : _credentials = credentials,
-        _httpClient = httpClient {
-    assert(_credentials != null);
-    assert(_httpClient != null);
-  }
+        _httpClient = httpClient;
 
   /// Returns an SQS service, inheriting the properties of this instance.
-  Sqs get sqs =>
-      _sqs ??= Sqs(credentials: _credentials, httpClient: _httpClient);
+  Sqs get sqs => Sqs(credentials: _credentials, httpClient: _httpClient);
 
   /// Returns an SNS service, inheriting the properties of this instance.
   Sns sns(String region) =>

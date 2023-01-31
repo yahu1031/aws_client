@@ -5,7 +5,6 @@
 import 'dart:async';
 
 import 'package:http_client/http_client.dart' as http;
-import 'package:meta/meta.dart';
 import 'package:xml/xml.dart';
 
 import 'src/credentials.dart';
@@ -17,12 +16,9 @@ class Sqs {
   final http.Client _httpClient;
 
   /// AWS SQS
-  Sqs({Credentials credentials, http.Client httpClient})
+  Sqs({required Credentials credentials, required http.Client httpClient})
       : _credentials = credentials,
-        _httpClient = httpClient {
-    assert(_credentials != null);
-    assert(_httpClient != null);
-  }
+        _httpClient = httpClient;
 
   /// Returns a new SQS queue, inheriting the properties of this instance.
   SqsQueue queue(String queueUrl) =>
@@ -30,8 +26,8 @@ class Sqs {
 
   /// Create a new SQS queue
   Future<SqsQueue> create(
-      {@required String region,
-      @required String queueName,
+      {required String region,
+      required String queueName,
       String maxSize = '1024',
       String retentionPeriod = '345600'}) async {
     assert(region != '');
@@ -53,7 +49,7 @@ class Sqs {
       httpClient: _httpClient,
     ).sendRequest();
     response.validateStatus();
-    final xml = parse(await response.readAsString());
+    final xml = XmlDocument.parse(await response.readAsString());
     final queueUrl = xml.findAllElements('QueueUrl').first.text;
     return queue(queueUrl);
   }
@@ -86,18 +82,14 @@ class SqsQueue {
   ///
   SqsQueue(
     String queueUrl, {
-    Credentials credentials,
-    http.Client httpClient,
+    required Credentials credentials,
+    required http.Client httpClient,
   })  : _credentials = credentials,
         _httpClient = httpClient,
-        _queueUrl = queueUrl {
-    assert(_credentials != null);
-    assert(_httpClient != null);
-    assert(_queueUrl != null);
-  }
+        _queueUrl = queueUrl;
 
   /// Receives a single message from the queue.
-  Future<SqsMessage> receiveOne({int waitSeconds}) async {
+  Future<SqsMessage?> receiveOne({int? waitSeconds}) async {
     final messages = await receiveMessage(1, waitSeconds: waitSeconds);
     if (messages.isEmpty) return null;
     return messages.first;
@@ -110,7 +102,7 @@ class SqsQueue {
   /// available immediately.
   ///
   /// http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
-  Future<List<SqsMessage>> receiveMessage(int number, {int waitSeconds}) async {
+  Future<List<SqsMessage>> receiveMessage(int number, {int? waitSeconds}) async {
     assert(number > 0);
     final parameters = <String, String>{
       'Action': 'ReceiveMessage',
@@ -128,7 +120,7 @@ class SqsQueue {
       httpClient: _httpClient,
     ).sendRequest();
     response.validateStatus();
-    final xml = parse(await response.readAsString());
+    final xml = XmlDocument.parse(await response.readAsString());
     return xml
         .findAllElements('Message')
         // LOW PRIORITY: check MD5 signature
@@ -163,7 +155,7 @@ class SqsQueue {
   ///
   /// http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
   Future sendMessage(String body,
-      {String messageGroupId, String messageDeduplicationId}) async {
+      {String? messageGroupId, String? messageDeduplicationId}) async {
     final parameters = <String, String>{
       'Action': 'SendMessage',
       'MessageBody': body,
